@@ -1,64 +1,55 @@
 import React, { Component } from 'react';
+import Card from './card.js'
 import axios from 'axios';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import '../styles/app.css';
 
-export default class App extends React.Component{
+export default class App extends Component{
   constructor(props){
     super(props)
     this.getCoins = this.getCoins.bind(this)
-    this.setIndex = this.setIndex.bind(this)
-    this.state = {
+    this.state = { 
       coins: [],
-      index: 0,
       updating: false,
       isLoading: false
     }
   }
+
   componentDidMount(){
     this.getCoins()
   }
-  componentDidUpdate(prevProps, prevState){
-    if(prevState.index !== this.state.index){
-      if(this.state.isShowingTooltip){
-        this.setState({isShowingTooltip: false})
-      }       
-      this.setState({updating: true})
-      setTimeout(() => {
-        this.setState({updating: false})
-      }, 200)
-    }
-  }
+
   getCoins(){
     this.setState({isLoading: true})
     axios.get('https://api.coinmarketcap.com/v1/ticker/')
-      .then(res => {
-        const coins = this.mapCoins(res.data)
-        this.setState({coins})
-        this.setState({isLoading: false})
-      })
-      .catch(err => {
-        console.error('Error loading data from Coin Market Cap')
-        console.error(err)
-      })
+    .then(res => {
+      const coins = this.mapCoins(res.data);
+      this.setState({coins});
+      setTimeout(
+        function() {
+          this.setState({isLoading: false});
+        }
+        .bind(this),
+        2000
+      );
+    })
+    .catch(err => {
+      console.error('Error loading data from Coin Market Cap')
+      console.error(err)
+    })
   }
+
   mapCoins(coins){
     return coins.map(coin => ({
-      name: coin.name,
       symbol: coin.symbol,
-      price: formatNum(coin.price_usd)
+      price: parseInt(coin.price_usd * 1000) / 1000,
     }))
   }
-  setIndex(index){
-    this.setState({index})
-  }
-  render(){
-    const {
-      coins, 
-      index, 
-      updating,
-      isLoading
-    } = this.state
 
-    let card = null
+  render(){
+
+    const { coins, isLoading } = this.state;
+    let card = null;
 
     if(isLoading){
       card = (
@@ -69,59 +60,15 @@ export default class App extends React.Component{
     }
     else if(coins.length > 0){
       card = (
-        <Card 
-          coins={coins} 
-          index={index}
-          setIndex={this.setIndex}
-        />
+        <Card coins={coins} />
       )  
     }
     
     return(
-      <div id="app" className={updating ? 'updating' : ''}>
+      <div className='api-data'>
         {card}
       </div>
     )
   }
 }
-
-class Card extends React.Component{
-  render(){
-    const {coins, index} = this.props,
-          coin = coins[index]
-    return(
-      <div id="card-wrapper">
-
-        <div id="coin-header">
-
-          <div id="coin-name">
-            <h1>{coin.name}</h1>
-          </div>
-
-          <div id="coin-symbol">
-            <h1>{coin.symbol}</h1>
-          </div>
-
-        </div>
-
-        <div id="coin-price">
-          <h1>${coin.price}</h1>
-        </div>
-
-      </div>
-    )
-  }
-}
-
-
-
-const formatNum = num => {
-  const splitNum = num.split('.'),
-        firstHalf = splitNum[0].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","),
-        secondHalf = splitNum[1] ? splitNum[1].substring(0, 2) : splitNum[1]
-
-  return secondHalf ? `${firstHalf}.${secondHalf}` : firstHalf
-}
-
-
 
